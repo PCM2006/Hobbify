@@ -1,4 +1,4 @@
-package com.app.hobbify.auth;
+package com.app.hobbify.service;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.User;
@@ -10,10 +10,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.app.hobbify.auth.CuentaRepository.Cuenta;
+import com.app.hobbify.model.Cuenta;
+import com.app.hobbify.model.TipoCuenta;
+import com.app.hobbify.repository.CuentaRepository;
 
 @Service
-class CuentaService implements UserDetailsService {
+public class CuentaService implements UserDetailsService {
 
     private final CuentaRepository cuentas;
     private final PasswordEncoder passwordEncoder;
@@ -24,8 +26,8 @@ class CuentaService implements UserDetailsService {
     }
 
     @Transactional
-    Cuenta registrar(String nombre, String apellido, String correo, String contrasena,
-                     TipoCuenta tipo, String nombreComercial) {
+    public Cuenta registrar(String nombre, String apellido, String correo, String contrasena,
+                            TipoCuenta tipo, String nombreComercial) {
         if (tipo == TipoCuenta.EMPRESA && (nombreComercial == null || nombreComercial.isBlank())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre comercial es obligatorio");
         }
@@ -41,7 +43,7 @@ class CuentaService implements UserDetailsService {
         return cuentaActiva(correo);
     }
 
-    Cuenta cuentaActiva(String correo) {
+    public Cuenta cuentaActiva(String correo) {
         return cuentas.buscarPorCorreo(correo)
                 .filter(Cuenta::activa)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Cuenta no disponible"));

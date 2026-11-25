@@ -1,4 +1,4 @@
-package com.app.hobbify.auth;
+package com.app.hobbify.controller;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
@@ -29,7 +29,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.app.hobbify.auth.CuentaRepository.Cuenta;
+import com.app.hobbify.model.Cuenta;
+import com.app.hobbify.model.TipoCuenta;
+import com.app.hobbify.service.CuentaService;
 
 @RestController
 @RequestMapping("/api/v1/auth")

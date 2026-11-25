@@ -12,7 +12,7 @@ paths:
       description: Conserva la cookie y solicita un token nuevo después de iniciar o cerrar sesión.
       responses:
         '200':
-          description: Cabecera y token que se envían en los POST.
+          description: Cabecera y token que se envían en las solicitudes POST y PUT.
           content:
             application/json:
               schema:
@@ -92,6 +92,70 @@ paths:
           description: Sesión cerrada.
         '403':
           $ref: '#/components/responses/CsrfInvalido'
+  /api/v1/empresas/me:
+    get:
+      operationId: consultarPerfilPropio
+      summary: Consultar el perfil de la empresa de la sesión
+      security:
+        - Sesion: []
+      responses:
+        '200':
+          $ref: '#/components/responses/PerfilEmpresa'
+        '401':
+          description: Sesión ausente, vencida o cuenta no disponible.
+        '403':
+          description: La sesión pertenece a una cuenta personal.
+    put:
+      operationId: actualizarPerfilPropio
+      summary: Actualizar los datos públicos de la empresa de la sesión
+      description: Los campos opcionales omitidos, nulos o vacíos se limpian.
+      security:
+        - Sesion: []
+      parameters:
+        - $ref: '#/components/parameters/Csrf'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatosPerfilEmpresa'
+      responses:
+        '200':
+          $ref: '#/components/responses/PerfilEmpresa'
+        '400':
+          description: Datos del perfil inválidos.
+        '401':
+          description: Sesión ausente, vencida o cuenta no disponible.
+        '403':
+          description: Sesión de cuenta personal o token CSRF ausente o inválido.
+  /api/v1/empresas/{id}:
+    get:
+      operationId: consultarPerfilPublico
+      summary: Consultar el perfil público y las publicaciones visibles de una empresa
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Perfil público y publicaciones ordenadas de la más reciente a la más antigua.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [perfil, publicaciones]
+                properties:
+                  perfil:
+                    $ref: '#/components/schemas/PerfilEmpresa'
+                  publicaciones:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PublicacionResumenEmpresa'
+        '404':
+          description: Empresa no encontrada o fuera del catálogo público.
 components:
   securitySchemes:
     Sesion:
@@ -113,6 +177,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Cuenta'
+    PerfilEmpresa:
+      description: Datos editables del perfil público de la empresa.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PerfilEmpresa'
     CsrfInvalido:
       description: Token CSRF ausente o inválido.
   schemas:
@@ -182,3 +252,67 @@ components:
         nombreComercial:
           type: string
           nullable: true
+    DatosPerfilEmpresa:
+      type: object
+      required: [nombreComercial]
+      properties:
+        nombreComercial:
+          type: string
+          minLength: 1
+          maxLength: 140
+        descripcion:
+          type: string
+          nullable: true
+        correoPublico:
+          type: string
+          format: email
+          maxLength: 254
+          nullable: true
+        telefonoPublico:
+          type: string
+          maxLength: 30
+          nullable: true
+        sitioWeb:
+          type: string
+          format: uri
+          maxLength: 250
+          nullable: true
+          description: URL HTTP o HTTPS.
+        instagramUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: URL HTTP o HTTPS.
+        facebookUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: URL HTTP o HTTPS.
+        whatsapp:
+          type: string
+          maxLength: 30
+          nullable: true
+    PerfilEmpresa:
+      allOf:
+        - $ref: '#/components/schemas/DatosPerfilEmpresa'
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: integer
+              format: int64
+    PublicacionResumenEmpresa:
+      type: object
+      required: [id, tipo, titulo, publicadaEn]
+      properties:
+        id:
+          type: integer
+          format: int64
+        tipo:
+          type: string
+          enum: [lugar, taller, charla]
+        titulo:
+          type: string
+        publicadaEn:
+          type: string
+          format: date-time
