@@ -1,0 +1,870 @@
+{
+  "info": {
+    "name": "Hobbify · Autenticación y perfil de empresa",
+    "description": "Pruebas locales de HU-02 y HU-12. Ejecuta todas las solicitudes en su orden. Cada ejecución registra dos cuentas ficticias con correos únicos y actualiza el perfil de la empresa de prueba. Postman conserva la cookie de sesión y los scripts guardan el token CSRF cuando se renueva.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "clavePrueba",
+      "value": "Hobbify-Prueba-2026!",
+      "type": "string"
+    },
+    {
+      "key": "correoPersonal",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "correoEmpresa",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "empresaId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "csrfToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 · Obtener CSRF y preparar los datos de prueba",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/csrf"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const id = pm.variables.replaceIn('{{$guid}}');",
+              "pm.collectionVariables.set('correoPersonal', 'postman-personal-' + id + '@example.test');",
+              "pm.collectionVariables.set('correoEmpresa', 'postman-empresa-' + id + '@example.test');",
+              "pm.collectionVariables.unset('empresaId');",
+              "pm.collectionVariables.unset('csrfToken');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "    pm.test(\"Guardar token CSRF de la sesión\", function () {",
+              "        const csrf = pm.response.json();",
+              "        pm.expect(csrf.headerName).to.eql('X-CSRF-TOKEN');",
+              "        pm.expect(csrf.token).to.be.a('string').and.not.be.empty;",
+              "        pm.collectionVariables.set('csrfToken', csrf.token);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 · Registrar cuenta personal",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-TOKEN",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/registro",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Persona de Postman\",\n  \"correo\": \"{{correoPersonal}}\",\n  \"contrasena\": \"{{clavePrueba}}\",\n  \"tipo\": \"USUARIO\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "if (pm.response.code === 201) {",
+              "    pm.test(\"Datos de la cuenta USUARIO\", function () {",
+              "        const cuenta = pm.response.json();",
+              "        pm.expect(cuenta.tipo).to.eql('USUARIO');",
+              "        pm.expect(cuenta.correo).to.eql(pm.collectionVariables.get('correoPersonal'));",
+              "        pm.expect(cuenta).not.to.have.property('contrasena');",
+              "        pm.expect(cuenta).not.to.have.property('hash');",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 · Rechazar correo duplicado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-TOKEN",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/registro",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Persona de Postman\",\n  \"correo\": \"{{correoPersonal}}\",\n  \"contrasena\": \"{{clavePrueba}}\",\n  \"tipo\": \"USUARIO\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 409\", function () {",
+              "    pm.response.to.have.status(409);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 · Registrar empresa",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-TOKEN",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/registro",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Representante de Postman\",\n  \"correo\": \"{{correoEmpresa}}\",\n  \"contrasena\": \"{{clavePrueba}}\",\n  \"tipo\": \"EMPRESA\",\n  \"nombreComercial\": \"Empresa inicial de Postman\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "if (pm.response.code === 201) {",
+              "    pm.test(\"Datos de la cuenta EMPRESA\", function () {",
+              "        const cuenta = pm.response.json();",
+              "        pm.expect(cuenta.tipo).to.eql('EMPRESA');",
+              "        pm.expect(cuenta.correo).to.eql(pm.collectionVariables.get('correoEmpresa'));",
+              "        pm.expect(cuenta).not.to.have.property('contrasena');",
+              "        pm.expect(cuenta).not.to.have.property('hash');",
+              "    });",
+              "    pm.test(\"Guardar el ID de la empresa ficticia\", function () {",
+              "        const cuenta = pm.response.json();",
+              "        pm.expect(cuenta.id).to.be.a('number').and.greaterThan(0);",
+              "        pm.expect(cuenta.nombreComercial).to.eql('Empresa inicial de Postman');",
+              "        pm.collectionVariables.set('empresaId', String(cuenta.id));",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 · Iniciar sesión personal",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-TOKEN",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"{{correoPersonal}}\",\n  \"contrasena\": \"{{clavePrueba}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "    pm.test(\"Datos de la cuenta USUARIO\", function () {",
+              "        const cuenta = pm.response.json();",
+              "        pm.expect(cuenta.tipo).to.eql('USUARIO');",
+              "        pm.expect(cuenta.correo).to.eql(pm.collectionVariables.get('correoPersonal'));",
+              "        pm.expect(cuenta).not.to.have.property('contrasena');",
+              "        pm.expect(cuenta).not.to.have.property('hash');",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 · Consultar la cuenta personal",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "    pm.test(\"Datos de la cuenta USUARIO\", function () {",
+              "        const cuenta = pm.response.json();",
+              "        pm.expect(cuenta.tipo).to.eql('USUARIO');",
+              "        pm.expect(cuenta.correo).to.eql(pm.collectionVariables.get('correoPersonal'));",
+              "        pm.expect(cuenta).not.to.have.property('contrasena');",
+              "        pm.expect(cuenta).not.to.have.property('hash');",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 · Denegar el perfil privado a una cuenta personal",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/empresas/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 403\", function () {",
+              "    pm.response.to.have.status(403);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 · Renovar CSRF de la sesión personal",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/csrf"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.unset('csrfToken');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "    pm.test(\"Guardar token CSRF de la sesión\", function () {",
+              "        const csrf = pm.response.json();",
+              "        pm.expect(csrf.headerName).to.eql('X-CSRF-TOKEN');",
+              "        pm.expect(csrf.token).to.be.a('string').and.not.be.empty;",
+              "        pm.collectionVariables.set('csrfToken', csrf.token);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 · Denegar la edición a una cuenta personal",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-TOKEN",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/empresas/me",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombreComercial\": \"Taller de Postman\",\n  \"descripcion\": \"Perfil actualizado desde la colección de prueba.\",\n  \"correoPublico\": \"contacto@example.test\",\n  \"telefonoPublico\": \"+591 70000000\",\n  \"sitioWeb\": \"https://taller.example.test\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 403\", function () {",
+              "    pm.response.to.have.status(403);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 · Cerrar sesión personal",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-TOKEN",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/logout"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 204\", function () {",
+              "    pm.response.to.have.status(204);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 · Obtener CSRF para el inicio empresarial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/csrf"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.unset('csrfToken');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "    pm.test(\"Guardar token CSRF de la sesión\", function () {",
+              "        const csrf = pm.response.json();",
+              "        pm.expect(csrf.headerName).to.eql('X-CSRF-TOKEN');",
+              "        pm.expect(csrf.token).to.be.a('string').and.not.be.empty;",
+              "        pm.collectionVariables.set('csrfToken', csrf.token);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 · Iniciar sesión empresarial",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-TOKEN",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"{{correoEmpresa}}\",\n  \"contrasena\": \"{{clavePrueba}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "    pm.test(\"Datos de la cuenta EMPRESA\", function () {",
+              "        const cuenta = pm.response.json();",
+              "        pm.expect(cuenta.tipo).to.eql('EMPRESA');",
+              "        pm.expect(cuenta.correo).to.eql(pm.collectionVariables.get('correoEmpresa'));",
+              "        pm.expect(cuenta).not.to.have.property('contrasena');",
+              "        pm.expect(cuenta).not.to.have.property('hash');",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 · Renovar CSRF de la sesión empresarial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/csrf"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.unset('csrfToken');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "    pm.test(\"Guardar token CSRF de la sesión\", function () {",
+              "        const csrf = pm.response.json();",
+              "        pm.expect(csrf.headerName).to.eql('X-CSRF-TOKEN');",
+              "        pm.expect(csrf.token).to.be.a('string').and.not.be.empty;",
+              "        pm.collectionVariables.set('csrfToken', csrf.token);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 · Consultar el perfil empresarial propio",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/empresas/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "    pm.test(\"Perfil de la empresa registrada\", function () {",
+              "        const perfil = pm.response.json();",
+              "        pm.expect(perfil.id).to.eql(Number(pm.collectionVariables.get('empresaId')));",
+              "        pm.expect(perfil.nombreComercial).to.eql('Empresa inicial de Postman');",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 · Rechazar un perfil con nombre vacío",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-TOKEN",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/empresas/me",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombreComercial\": \"\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16 · Actualizar el perfil empresarial",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-TOKEN",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/empresas/me",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombreComercial\": \"Taller de Postman\",\n  \"descripcion\": \"Perfil actualizado desde la colección de prueba.\",\n  \"correoPublico\": \"contacto@example.test\",\n  \"telefonoPublico\": \"+591 70000000\",\n  \"sitioWeb\": \"https://taller.example.test\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "    pm.test(\"Perfil propio guardado\", function () {",
+              "        const perfil = pm.response.json();",
+              "        pm.expect(perfil.id).to.eql(Number(pm.collectionVariables.get('empresaId')));",
+              "        pm.expect(perfil.nombreComercial).to.eql('Taller de Postman');",
+              "        pm.expect(perfil.descripcion).to.eql('Perfil actualizado desde la colección de prueba.');",
+              "        pm.expect(perfil.correoPublico).to.eql('contacto@example.test');",
+              "        pm.expect(perfil.telefonoPublico).to.eql('+591 70000000');",
+              "        pm.expect(perfil.sitioWeb).to.eql('https://taller.example.test');",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "17 · Confirmar que se guardó el perfil",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/empresas/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "    pm.test(\"Perfil propio guardado\", function () {",
+              "        const perfil = pm.response.json();",
+              "        pm.expect(perfil.id).to.eql(Number(pm.collectionVariables.get('empresaId')));",
+              "        pm.expect(perfil.nombreComercial).to.eql('Taller de Postman');",
+              "        pm.expect(perfil.descripcion).to.eql('Perfil actualizado desde la colección de prueba.');",
+              "        pm.expect(perfil.correoPublico).to.eql('contacto@example.test');",
+              "        pm.expect(perfil.telefonoPublico).to.eql('+591 70000000');",
+              "        pm.expect(perfil.sitioWeb).to.eql('https://taller.example.test');",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "18 · Cerrar sesión empresarial",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-TOKEN",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/logout"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 204\", function () {",
+              "    pm.response.to.have.status(204);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "19 · Denegar la consulta de cuenta después del cierre",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 401\", function () {",
+              "    pm.response.to.have.status(401);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "20 · Consultar el perfil público sin sesión",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/empresas/{{empresaId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "    pm.test(\"Perfil público actualizado y publicaciones vacías\", function () {",
+              "        const respuesta = pm.response.json();",
+              "        pm.expect(respuesta.perfil.id).to.eql(Number(pm.collectionVariables.get('empresaId')));",
+              "        pm.expect(respuesta.perfil.nombreComercial).to.eql('Taller de Postman');",
+              "        pm.expect(respuesta.perfil.correoPublico).to.eql('contacto@example.test');",
+              "        pm.expect(respuesta.perfil).not.to.have.property('correo');",
+              "        pm.expect(respuesta.publicaciones).to.eql([]);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

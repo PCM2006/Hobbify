@@ -36,12 +36,40 @@ Para ejecutar la prueba de arranque, apunta la configuración a una base de desa
 
 Las migraciones viven en `hobbify/src/main/resources/db/migration/`. Flyway registra cada versión en `public.flyway_schema_history`. Si ya ejecutaste manualmente el SQL original en otra base, crea una base nueva para esta configuración. Los cambios posteriores del esquema se incorporan mediante nuevas migraciones.
 
+## Arquitectura
+
+El backend usa Spring MVC para exponer la API REST. El frontend se encarga de las vistas y consume las respuestas JSON.
+
+- `controller` recibe las solicitudes HTTP y delega en los servicios.
+- `model` contiene las cuentas, los perfiles y los datos que intercambia la aplicación.
+- `service` aplica las reglas de negocio y coordina los repositorios.
+- `repository` realiza las consultas a PostgreSQL.
+- `config` configura la seguridad y el acceso desde frontend.
+
 ## Autenticación
 
 El [contrato OpenAPI](hobbify/openapi.yaml) describe el registro de usuarios y empresas, el inicio de sesión, la consulta de la cuenta propia y el cierre de sesión.
 
-1. Solicita `GET /api/v1/auth/csrf` antes del primer POST. Usa el `headerName` y el `token` de la respuesta como cabecera de los POST.
+1. Solicita `GET /api/v1/auth/csrf` antes del primer POST o PUT. Usa el `headerName` y el `token` de la respuesta como cabecera de esas solicitudes.
 2. Registra una cuenta con `POST /api/v1/auth/registro` e inicia sesión con `POST /api/v1/auth/login`. La respuesta incluye el tipo de cuenta (`USUARIO` o `EMPRESA`).
 3. Usa `GET /api/v1/auth/me` para recuperar la cuenta de la sesión. Pide un token CSRF nuevo después de iniciar sesión y después de cerrar sesión con `POST /api/v1/auth/logout`.
 
 Desde frontend, envía las peticiones con `credentials: 'include'` para conservar la cookie de sesión. En local usa `localhost` en ambos servicios. Si frontend usa un origen diferente de `http://localhost:5173`, configura `HOBBIFY_FRONTEND_ORIGINS` en `.env` con los orígenes permitidos separados por comas.
+
+## Perfil de empresa
+
+- `GET /api/v1/empresas/me` devuelve los datos del perfil de la empresa autenticada.
+- `PUT /api/v1/empresas/me` guarda el nombre comercial, la descripción y los datos públicos de contacto. Envía la cookie de sesión y el token CSRF. Incluye los campos opcionales que quieras conservar, porque omitirlos los limpia.
+- `GET /api/v1/empresas/{id}` devuelve `perfil` y `publicaciones` sin exigir inicio de sesión. Usa como `id` el que devuelve el perfil privado. Las publicaciones se listan de la más reciente a la más antigua.
+
+## Pruebas en Postman
+
+Arranca el backend e importa la [colección de pruebas](hobbify/postman/Hobbify.postman_collection.json) en Postman. En la colección, comprueba que `baseUrl` apunta al backend local y ejecuta **Run collection** con una iteración y el orden original.
+
+Cada ejecución registra una cuenta personal y una empresa ficticias en la base configurada y edita el perfil de esa empresa. Postman conserva la cookie y la colección renueva el token CSRF. Los estados `400`, `401`, `403` y `409` son resultados esperados en las solicitudes de validación y permisos.
+
+Si la importación se bloquea, puedes ejecutar la misma colección con Newman desde `hobbify/` en otra terminal mientras el backend sigue activo.
+
+```powershell
+npx.cmd --yes newman@6.2.3 run .\postman\Hobbify.postman_collection.json
+```
