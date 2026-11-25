@@ -27,6 +27,13 @@
 @REM   MVNW_VERBOSE - true: enable verbose log; others: silence the output
 @REM ----------------------------------------------------------------------------
 
+@REM Use the local JDK selection for this Maven invocation.
+@IF EXIST "%~dp0.mvn\java-home.local" (
+  @SETLOCAL
+  @SET "JAVA_HOME="
+  @SET /P "JAVA_HOME="<"%~dp0.mvn\java-home.local"
+)
+
 @IF "%__MVNW_ARG0_NAME__%"=="" (SET __MVNW_ARG0_NAME__=%~nx0)
 @SET __MVNW_CMD__=
 @SET __MVNW_ERROR__=

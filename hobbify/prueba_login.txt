@@ -1,0 +1,33 @@
+$api = 'http://localhost:8080/api/v1/auth'
+$correo = "prueba-$([guid]::NewGuid().ToString('N'))@example.test"
+$clave = 'ClaveDePrueba123!'
+
+# Abre la sesión y obtiene el token CSRF
+$csrf = Invoke-RestMethod "$api/csrf" -SessionVariable sesion
+$headers = @{}
+$headers[$csrf.headerName] = $csrf.token
+
+# Registra la cuenta
+$registro = @{
+    nombre = 'Usuario de prueba'
+    correo = $correo
+    contrasena = $clave
+    tipo = 'USUARIO'
+} | ConvertTo-Json
+
+Invoke-RestMethod "$api/registro" -Method Post -WebSession $sesion `
+    -Headers $headers -ContentType 'application/json' -Body $registro
+
+# Inicia sesión y consulta tu cuenta
+$login = @{ correo = $correo; contrasena = $clave } | ConvertTo-Json
+
+Invoke-RestMethod "$api/login" -Method Post -WebSession $sesion `
+    -Headers $headers -ContentType 'application/json' -Body $login
+
+Invoke-RestMethod "$api/me" -WebSession $sesion
+
+# Renueva el token CSRF y cierra sesión
+$csrf = Invoke-RestMethod "$api/csrf" -WebSession $sesion
+$headers[$csrf.headerName] = $csrf.token
+
+Invoke-RestMethod "$api/logout" -Method Post -WebSession $sesion -Headers $headers
