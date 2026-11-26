@@ -440,6 +440,49 @@
       ]
     },
     {
+      "name": "09a · Denegar la edición de presentación a una cuenta personal",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-TOKEN",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/empresas/me/presentacion",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombreComercial\": \"Taller de Postman\",\n  \"descripcion\": \"Descripción pública desde el formulario.\",\n  \"colorPrincipal\": \"#18a572\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "10 · Cerrar sesión personal",
       "request": {
         "method": "POST",
@@ -633,6 +676,7 @@
               "        const perfil = pm.response.json();",
               "        pm.expect(perfil.id).to.eql(Number(pm.collectionVariables.get('empresaId')));",
               "        pm.expect(perfil.nombreComercial).to.eql('Empresa inicial de Postman');",
+              "        pm.expect(perfil.colorPrincipal).to.eql('#522bb8');",
               "    });",
               "}"
             ]
@@ -738,6 +782,104 @@
       ]
     },
     {
+      "name": "16a · Rechazar un color de portada inválido",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-TOKEN",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/empresas/me/presentacion",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombreComercial\": \"Taller de Postman\",\n  \"descripcion\": \"Descripción pública desde el formulario.\",\n  \"colorPrincipal\": \"azul\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16b · Actualizar presentación y conservar el contacto",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-CSRF-TOKEN",
+            "value": "{{csrfToken}}"
+          }
+        ],
+        "url": "{{baseUrl}}/empresas/me/presentacion",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombreComercial\": \"Taller de Postman\",\n  \"descripcion\": \"Descripción pública desde el formulario.\",\n  \"colorPrincipal\": \"#18a572\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "    pm.test('Presentación guardada y contacto conservado', function () {",
+              "        const perfil = pm.response.json();",
+              "        pm.expect(perfil.id).to.eql(Number(pm.collectionVariables.get('empresaId')));",
+              "        pm.expect(perfil.nombreComercial).to.eql('Taller de Postman');",
+              "        pm.expect(perfil.descripcion).to.eql('Descripción pública desde el formulario.');",
+              "        pm.expect(perfil.colorPrincipal).to.eql('#18a572');",
+              "        pm.expect(perfil.correoPublico).to.eql('contacto@example.test');",
+              "        pm.expect(perfil.telefonoPublico).to.eql('+591 70000000');",
+              "        pm.expect(perfil.sitioWeb).to.eql('https://taller.example.test');",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "17 · Confirmar que se guardó el perfil",
       "request": {
         "method": "GET",
@@ -759,11 +901,12 @@
               "    pm.response.to.have.status(200);",
               "});",
               "if (pm.response.code === 200) {",
-              "    pm.test(\"Perfil propio guardado\", function () {",
+              "    pm.test('Presentación guardada y contacto conservado', function () {",
               "        const perfil = pm.response.json();",
               "        pm.expect(perfil.id).to.eql(Number(pm.collectionVariables.get('empresaId')));",
               "        pm.expect(perfil.nombreComercial).to.eql('Taller de Postman');",
-              "        pm.expect(perfil.descripcion).to.eql('Perfil actualizado desde la colección de prueba.');",
+              "        pm.expect(perfil.descripcion).to.eql('Descripción pública desde el formulario.');",
+              "        pm.expect(perfil.colorPrincipal).to.eql('#18a572');",
               "        pm.expect(perfil.correoPublico).to.eql('contacto@example.test');",
               "        pm.expect(perfil.telefonoPublico).to.eql('+591 70000000');",
               "        pm.expect(perfil.sitioWeb).to.eql('https://taller.example.test');",
@@ -859,6 +1002,7 @@
               "        pm.expect(respuesta.perfil.correoPublico).to.eql('contacto@example.test');",
               "        pm.expect(respuesta.perfil).not.to.have.property('correo');",
               "        pm.expect(respuesta.publicaciones).to.eql([]);",
+              "        pm.expect(respuesta.perfil.colorPrincipal).to.eql('#18a572');",
               "    });",
               "}"
             ]

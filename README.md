@@ -60,7 +60,10 @@ Desde frontend, envía las peticiones con `credentials: 'include'` para conserva
 
 - `GET /api/v1/empresas/me` devuelve los datos del perfil de la empresa autenticada.
 - `PUT /api/v1/empresas/me` guarda el nombre comercial, la descripción y los datos públicos de contacto. Envía la cookie de sesión y el token CSRF. Incluye los campos opcionales que quieras conservar, porque omitirlos los limpia.
+- `PUT /api/v1/empresas/me/presentacion` guarda solo el nombre comercial, la descripción y el color de portada. Usa la misma sesión y token CSRF.
 - `GET /api/v1/empresas/{id}` devuelve `perfil` y `publicaciones` sin exigir inicio de sesión. Usa como `id` el que devuelve el perfil privado. Las publicaciones se listan de la más reciente a la más antigua.
+
+Consulta la [referencia de integración](hobbify/docs/integracion-frontend.md) para ver cómo se corresponden los datos del prototipo con la API y el backlog.
 
 ## Pruebas en Postman
 

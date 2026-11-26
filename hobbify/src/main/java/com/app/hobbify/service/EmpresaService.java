@@ -7,6 +7,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.app.hobbify.model.DatosPerfilEmpresa;
 import com.app.hobbify.model.PerfilEmpresa;
 import com.app.hobbify.model.PerfilPublico;
+import com.app.hobbify.model.PresentacionEmpresa;
 import com.app.hobbify.repository.EmpresaRepository;
 
 @Service
@@ -25,6 +26,11 @@ public class EmpresaService {
 
     public PerfilEmpresa actualizarPerfilPropio(String correo, DatosPerfilEmpresa datos) {
         return empresas.actualizarPerfilPropio(correo, datos)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Cuenta no disponible"));
+    }
+
+    public PerfilEmpresa actualizarPresentacionPropia(String correo, PresentacionEmpresa datos) {
+        return empresas.actualizarPresentacionPropia(correo, datos)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Cuenta no disponible"));
     }
 

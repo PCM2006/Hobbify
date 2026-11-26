@@ -128,6 +128,30 @@ paths:
           description: Sesión ausente, vencida o cuenta no disponible.
         '403':
           description: Sesión de cuenta personal o token CSRF ausente o inválido.
+  /api/v1/empresas/me/presentacion:
+    put:
+      operationId: actualizarPresentacionPropia
+      summary: Guardar el nombre, la descripción y el color de portada
+      description: Actualiza únicamente los campos de presentación del perfil empresarial.
+      security:
+        - Sesion: []
+      parameters:
+        - $ref: '#/components/parameters/Csrf'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresentacionEmpresa'
+      responses:
+        '200':
+          $ref: '#/components/responses/PerfilEmpresa'
+        '400':
+          description: La presentación está incompleta o tiene un color inválido.
+        '401':
+          description: Sesión ausente, vencida o cuenta no disponible.
+        '403':
+          description: Sesión de cuenta personal o token CSRF ausente o inválido.
   /api/v1/empresas/{id}:
     get:
       operationId: consultarPerfilPublico
@@ -292,15 +316,34 @@ components:
           type: string
           maxLength: 30
           nullable: true
+    PresentacionEmpresa:
+      type: object
+      required: [nombreComercial, descripcion, colorPrincipal]
+      properties:
+        nombreComercial:
+          type: string
+          minLength: 1
+          maxLength: 140
+        descripcion:
+          type: string
+          minLength: 1
+        colorPrincipal:
+          type: string
+          pattern: '^#[0-9A-Fa-f]{6}$'
+          example: '#522bb8'
     PerfilEmpresa:
       allOf:
         - $ref: '#/components/schemas/DatosPerfilEmpresa'
         - type: object
-          required: [id]
+          required: [id, colorPrincipal]
           properties:
             id:
               type: integer
               format: int64
+            colorPrincipal:
+              type: string
+              pattern: '^#[0-9A-Fa-f]{6}$'
+              default: '#522bb8'
     PublicacionResumenEmpresa:
       type: object
       required: [id, tipo, titulo, publicadaEn]

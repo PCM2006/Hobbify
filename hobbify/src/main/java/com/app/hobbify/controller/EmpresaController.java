@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.app.hobbify.model.DatosPerfilEmpresa;
 import com.app.hobbify.model.PerfilEmpresa;
 import com.app.hobbify.model.PerfilPublico;
+import com.app.hobbify.model.PresentacionEmpresa;
 import com.app.hobbify.service.EmpresaService;
 
 @RestController
@@ -34,6 +35,11 @@ class EmpresaController {
     @PutMapping("/me")
     PerfilEmpresa actualizarPerfilPropio(Principal principal, @Valid @RequestBody DatosPerfilEmpresa datos) {
         return empresas.actualizarPerfilPropio(principal.getName(), datos);
+    }
+
+    @PutMapping("/me/presentacion")
+    PerfilEmpresa actualizarPresentacionPropia(Principal principal, @Valid @RequestBody PresentacionEmpresa datos) {
+        return empresas.actualizarPresentacionPropia(principal.getName(), datos);
     }
 
     @GetMapping("/{id:[0-9]+}")
