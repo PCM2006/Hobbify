@@ -45,7 +45,7 @@ class SeguridadConfig {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/registro", "/api/v1/auth/login").permitAll()
-                        .requestMatchers("/api/v1/empresas/me").hasRole("EMPRESA")
+                        .requestMatchers("/api/v1/empresas/me", "/api/v1/empresas/me/presentacion").hasRole("EMPRESA")
                         .requestMatchers(HttpMethod.GET, "/api/v1/empresas/{id:[0-9]+}").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(config -> config.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
